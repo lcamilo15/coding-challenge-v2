@@ -1,0 +1,79 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+    }
+}
+
+plugins {
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'java'
+    id 'application'
+    id 'idea'
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'org.slf4j:slf4j-simple:1.7.30'
+    implementation 'org.assertj:assertj-core:3.11.1'
+    implementation 'commons-io:commons-io:2.11.0'
+
+    // Dependencies go here
+    testCompile 'org.junit.jupiter:junit-jupiter:5.6.2'
+    testCompile 'org.mockito:mockito-core:2.21.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.6.2'
+
+    /**
+     * JUnit Jupiter as a testing framework.
+     */
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
+
+    /**
+     * JUnit Jupiter parameter configuration.
+     */
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.6.2'
+
+    /**
+     * JUnit Jupiter testing engine.
+     */
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.6.2'
+
+    /**
+     * Vintage platform engine.
+     */
+    testCompile group: 'org.junit.platform', name: 'junit-platform-engine', version: '1.2.0'
+
+    /**
+     * JUnit jupiter with mockito.
+     */
+    testCompile group: 'org.mockito', name: 'mockito-junit-jupiter', version: '2.19.0'
+
+    /**
+     * Mockito for mocking.
+     */
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '2.19.0'
+
+}
+
+mainClassName = 'com.newrelic.codingchallenge.Main'
+
+shadowJar {
+    baseName = 'coding-challenge-shadow'
+    classifier = null
+    version = null
+    manifest {
+        attributes 'Description': 'New Relic coding challenge application JAR'
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
