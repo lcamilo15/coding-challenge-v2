@@ -99,7 +99,7 @@ class NumberServerAppTest {
     }
 
     @Test
-    void aabac() throws IOException, ExecutionException, InterruptedException {
+    void test_number_tracker() throws IOException, ExecutionException, InterruptedException {
 
         List<CompletableFuture<String>> clientMessages = IntStream.range(0, maxClients).mapToObj(it->CompletableFuture.supplyAsync(() -> {
             while(!numberServer.isRunning()) TestUtils.sleep(10);
