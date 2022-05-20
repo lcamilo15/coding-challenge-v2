@@ -3,6 +3,7 @@ package com.newrelic.codingchallenge.service;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -24,8 +25,16 @@ class NumberTrackerTest {
         AtomicInteger numbersTracked = new AtomicInteger(0);
         Set<Integer> uniqueValues = ConcurrentHashMap.newKeySet();
 
-        NumberTracker numberTracker = new NumberTracker(number -> {
-            numbersTracked.incrementAndGet();
+        NumberTracker numberTracker = new NumberTracker(new NumberTrackerLogger() {
+            @Override
+            public void logNumber(Integer number) throws IOException {
+                numbersTracked.incrementAndGet();
+            }
+
+            @Override
+            public void close() throws IOException {
+
+            }
         });
 
 

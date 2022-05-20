@@ -1,10 +1,11 @@
 package com.newrelic.codingchallenge;
 
-import com.newrelic.codingchallenge.service.NumberFileLogger;
+import com.newrelic.codingchallenge.service.NumberBufferedFileLogger;
 import com.newrelic.codingchallenge.service.NumberTracker;
 import com.newrelic.codingchallenge.service.NumberTrackerMonitor;
 
 import java.io.File;
+import java.io.IOException;
 
 import static com.newrelic.codingchallenge.MessageUtils.isTerminationString;
 import static com.newrelic.codingchallenge.MessageUtils.isValidNumber;
@@ -19,7 +20,6 @@ public class NumberServerApp {
     private int maxClients;
     NumberServer numberServer;
 
-    NumberFileLogger numberTrackerLogger;
     NumberTracker numberTracker;
 
     /**
@@ -29,7 +29,7 @@ public class NumberServerApp {
      * @param maxClients max number of clients
      */
     public NumberServerApp(File logFile, int portNumber, int checkNumberTrackInSeconds, int maxClients) {
-        this(logFile, portNumber, checkNumberTrackInSeconds, maxClients, new NumberServer(portNumber, maxClients));
+        this(logFile, portNumber, checkNumberTrackInSeconds, maxClients, new NumberServer(portNumber, maxClients),  new NumberTracker(new NumberBufferedFileLogger(logFile)));
     }
 
     /**
@@ -39,14 +39,13 @@ public class NumberServerApp {
      * @param maxClients max number of clients
      * @param numberServer instance of number server, useful for testing
      */
-    public NumberServerApp(File logFile, int portNumber, int checkNumberTrackInSeconds, int maxClients, NumberServer numberServer) {
+    public NumberServerApp(File logFile, int portNumber, int checkNumberTrackInSeconds, int maxClients, NumberServer numberServer, NumberTracker numberTracker) {
         this.logFile = logFile;
         this.portNumber = portNumber;
         this.checkNumberTrackInSeconds = checkNumberTrackInSeconds;
         this.maxClients = maxClients;
         this.numberServer = numberServer;
-        this.numberTrackerLogger = new NumberFileLogger(logFile);
-        this.numberTracker = new NumberTracker(numberTrackerLogger);
+        this.numberTracker = numberTracker;
     }
 
 
@@ -82,7 +81,11 @@ public class NumberServerApp {
         });
 
         numberServer.onShutDown((it)->{
-            numberTrackerMonitor.shutDown();
+            try {
+                numberTrackerMonitor.shutDown();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         });
 
         numberTrackerMonitor.start();

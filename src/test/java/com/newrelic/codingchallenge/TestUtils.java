@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
 
 public class TestUtils {
 
@@ -14,12 +15,29 @@ public class TestUtils {
             throw new RuntimeException(e);
         }
     }
+
     public static boolean sendMessageToSever(int port, String message, long sleepInMilliseconds) {
         try {
             try (Socket clientSocket = new Socket("127.0.0.1", port); PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true) ) {
                 out.println(message);
                 sleep(sleepInMilliseconds);
             }
+        } catch (Exception connectException) {
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean sendMessagesToSever(int port, List<String> messages, long sleepInMilliseconds) {
+        try {
+            try (Socket clientSocket = new Socket("127.0.0.1", port); PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), false) ) {
+                for(String message: messages) {
+                    out.println(message);
+                }
+                sleep(sleepInMilliseconds);
+                out.flush();
+            }
+            sleep(sleepInMilliseconds);
         } catch (Exception connectException) {
             return false;
         }

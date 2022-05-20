@@ -1,5 +1,6 @@
 package com.newrelic.codingchallenge;
 
+import com.newrelic.codingchallenge.service.NumberBufferedFileLogger;
 import com.newrelic.codingchallenge.service.NumberTracker;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -19,10 +20,10 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.newrelic.codingchallenge.TestUtils.*;
+import static com.newrelic.codingchallenge.TestUtils.findFreePort;
+import static com.newrelic.codingchallenge.TestUtils.sendMessageToSever;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NumberServerAppTest {
@@ -35,11 +36,14 @@ class NumberServerAppTest {
     NumberServerApp numberServerApp;
     File tempLoggingFile;
 
+    NumberTracker numberTracker;
+
     @BeforeEach
     public void initServer(@TempDir Path tempDir) {
         tempLoggingFile = tempDir.resolve("numbers.log").toFile();
         numberServer = Mockito.spy(new NumberServer(freePort, maxClients));
-        numberServerApp = new NumberServerApp(tempLoggingFile, freePort, checkNumberTrackInSeconds, maxClients, numberServer);
+        numberTracker = Mockito.spy(new NumberTracker(new NumberBufferedFileLogger(tempLoggingFile)));
+        numberServerApp = new NumberServerApp(tempLoggingFile, freePort, checkNumberTrackInSeconds, maxClients, numberServer, numberTracker);
         executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1000);
         executor.execute(numberServerApp::startServer);
     }
@@ -104,31 +108,37 @@ class NumberServerAppTest {
         List<CompletableFuture<String>> clientMessages = IntStream.range(0, maxClients).mapToObj(it->CompletableFuture.supplyAsync(() -> {
             while(!numberServer.isRunning()) TestUtils.sleep(10);
             String randomNumber = String.format("%09d", it);
-            sendMessageToSever(freePort, randomNumber, 10);
+            sendMessageToSever(freePort, randomNumber, 0);
             return randomNumber;
         })).collect(Collectors.toList());
 
+        //Wait for messages to be tracked
+        verify(numberTracker, timeout(5000).times(maxClients)).trackNumber(Mockito.anyInt());
         List<String> uniqueMessagesSent = clientMessages.stream().map(CompletableFuture::join).collect(Collectors.toList());
         NumberTracker.CountSnapShot snapShotFirstCall = numberServerApp.numberTracker.clearAndGetCountSnapShot();
-        sleep(10);
 
         List<CompletableFuture<String>> duplicateMessages = IntStream.range(0, maxClients).mapToObj(it->CompletableFuture.supplyAsync(() -> {
             while(!numberServer.isRunning()) TestUtils.sleep(10);
             String randomNumber = String.format("%09d", it);
-            sendMessageToSever(freePort, randomNumber, 10);
+            sendMessageToSever(freePort, randomNumber, 100);
             return randomNumber;
         })).collect(Collectors.toList());
 
+        //Wait for messages to be tracked
+        verify(numberTracker, timeout(5000).times(maxClients *2)).trackNumber(Mockito.anyInt());
+
         List<String> duplicateNumbersSent = duplicateMessages.stream().map(CompletableFuture::join).collect(Collectors.toList());
         NumberTracker.CountSnapShot snapShotDuplicates = numberServerApp.numberTracker.clearAndGetCountSnapShot();
-        sleep(10);
 
         List<CompletableFuture<String>> newClientMessages = IntStream.range(0, maxClients).mapToObj(it->CompletableFuture.supplyAsync(() -> {
             while(!numberServer.isRunning()) TestUtils.sleep(10);
             String randomNumber = String.format("%09d", it+10);
-            sendMessageToSever(freePort, randomNumber, 10);
+            sendMessageToSever(freePort, randomNumber, 0);
             return randomNumber;
         })).collect(Collectors.toList());
+
+        //Wait for messages to be tracked
+        verify(numberTracker, timeout(5000).times(maxClients *3)).trackNumber(Mockito.anyInt());
 
         List<String> newClientMessagesSent = newClientMessages.stream().map(CompletableFuture::join).collect(Collectors.toList());
         NumberTracker.CountSnapShot snapShotNewClientMessagesSent = numberServerApp.numberTracker.clearAndGetCountSnapShot();

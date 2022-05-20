@@ -12,14 +12,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.linesOf;
 
 
-class NumberFileLoggerTest {
+class NumberBufferedFileLoggerTest {
     @Test
     void log_numbers_to_file(@TempDir Path tempDir) throws Exception {
         File numberFile = tempDir.resolve("numbers.log").toFile();
         String[] testingValues = {"000000001", "000000002", "000000003"};
-        try(NumberFileLogger numberFileLogger = new NumberFileLogger(numberFile)) {
+        try(NumberBufferedFileLogger numberBufferedFileLogger = new NumberBufferedFileLogger(numberFile)) {
             for (String expectedValue: testingValues) {
-                numberFileLogger.logNumber(Integer.parseInt(expectedValue));
+                numberBufferedFileLogger.logNumber(Integer.parseInt(expectedValue));
             }
         }
         assertThat(linesOf(numberFile)).containsExactly(
@@ -33,9 +33,9 @@ class NumberFileLoggerTest {
         numberFile.createNewFile();
         numberFile.setReadOnly();
 
-        NumberFileLogger.NumberLoggerInitializationException exception = Assertions.assertThrows(NumberFileLogger.NumberLoggerInitializationException.class, () -> {
+        NumberBufferedFileLogger.NumberLoggerInitializationException exception = Assertions.assertThrows(NumberBufferedFileLogger.NumberLoggerInitializationException.class, () -> {
             String[] testingValues = {"000000001", "000000002", "000000003"};
-            try(NumberFileLogger numberFileLogger = new NumberFileLogger(numberFile)) {
+            try(NumberBufferedFileLogger numberFileLogger = new NumberBufferedFileLogger(numberFile)) {
                 for (String expectedValue: testingValues) {
                     numberFileLogger.logNumber(Integer.parseInt(expectedValue));
                 }

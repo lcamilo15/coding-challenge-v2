@@ -1,5 +1,6 @@
 package com.newrelic.codingchallenge.service;
 
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -16,10 +17,11 @@ public class NumberTrackerMonitor {
     public void start() {
         scheduledExecutorService.scheduleAtFixedRate(() -> {
             NumberTracker.CountSnapShot countSnapShot = numberTracker.clearAndGetCountSnapShot();
-            System.out.println(MessageFormat.format("Received {0} unique numbers, {1} duplicates. Unique total: {2}", countSnapShot.uniqueNumbers, countSnapShot.duplicateNumbers, countSnapShot.uniqueTotal));
+            System.out.println(String.format("Received %d unique numbers, %d duplicates. Unique total: %d", countSnapShot.uniqueNumbers, countSnapShot.duplicateNumbers, countSnapShot.uniqueTotal));
         }, periodInMilliseconds, periodInMilliseconds, TimeUnit.MILLISECONDS);
     }
-    public void shutDown() {
+    public void shutDown() throws IOException {
+        numberTracker.close();
         scheduledExecutorService.shutdown();
     }
 }

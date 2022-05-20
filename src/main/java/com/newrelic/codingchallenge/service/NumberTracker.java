@@ -20,17 +20,15 @@ public class NumberTracker {
     }
 
     public void trackNumber(Integer number) {
-        synchronized (indexedNumbers) {
-            if (indexedNumbers.add(number)) {
-                uniqueNumbers.incrementAndGet();
-                try {
-                    numberTrackerLogger.logNumber(number);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                duplicateNumbers.incrementAndGet();
+        if (indexedNumbers.add(number)) {
+            uniqueNumbers.incrementAndGet();
+            try {
+                numberTrackerLogger.logNumber(number);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
+        } else {
+            duplicateNumbers.incrementAndGet();
         }
     }
 
@@ -38,6 +36,10 @@ public class NumberTracker {
         synchronized (indexedNumbers) {
             return new CountSnapShot(uniqueNumbers.getAndSet(0), duplicateNumbers.getAndSet(0), indexedNumbers.size());
         }
+    }
+
+    public void close() throws IOException {
+        numberTrackerLogger.close();
     }
 
     public static class CountSnapShot {

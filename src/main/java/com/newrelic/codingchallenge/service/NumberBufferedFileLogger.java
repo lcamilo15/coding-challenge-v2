@@ -3,28 +3,31 @@ package com.newrelic.codingchallenge.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 
 /**
  * Implementation of NumberTrackerLogger,
  * Used to log Numbers into file
  */
-public class NumberFileLogger implements NumberTrackerLogger, Closeable {
+public class NumberBufferedFileLogger implements NumberTrackerLogger, Closeable {
     String logFile;
-    FileWriter fileWriter;
-    Logger logger = LoggerFactory.getLogger(NumberFileLogger.class);
+    BufferedWriter bufferedWriter;
+    Logger logger = LoggerFactory.getLogger(NumberBufferedFileLogger.class);
+    int bufferSize;
 
-    public NumberFileLogger(File file) {
+    public NumberBufferedFileLogger(File file) {
+        this(file, 200* 1000);
+    }
+
+    public NumberBufferedFileLogger(File file, int bufferSize) {
         this.logFile = file.getName();
+        this.bufferSize = bufferSize;
         initFileWriter(file.getAbsolutePath());
     }
     @Override
     public void logNumber(Integer number) throws IOException {
         try {
-            fileWriter.write(String.format("%09d%n", number));
+            bufferedWriter.write(String.format("%09d%n", number));
         } catch (IOException e) {
             logger.error("A problem occurred writing to file " + logFile, e);
             throw e;
@@ -34,7 +37,8 @@ public class NumberFileLogger implements NumberTrackerLogger, Closeable {
     @Override
     public void close() throws IOException {
         try {
-            fileWriter.close();
+            flush();
+            bufferedWriter.close();
         } catch (IOException e) {
             logger.warn("A problem occurred closing the fileWriter", e);
             throw e;
@@ -43,7 +47,7 @@ public class NumberFileLogger implements NumberTrackerLogger, Closeable {
 
     public void flush() throws IOException {
         try {
-            fileWriter.flush();
+            bufferedWriter.flush();
         } catch (IOException e) {
             logger.warn("A problem occurred flushing to file " + logFile, e);
             throw e;
@@ -52,7 +56,7 @@ public class NumberFileLogger implements NumberTrackerLogger, Closeable {
 
     protected void initFileWriter(String logFile) throws NumberLoggerInitializationException {
         try {
-            this.fileWriter = new FileWriter(logFile, false);
+            this.bufferedWriter = new BufferedWriter(new FileWriter(logFile, false), bufferSize);
         } catch (IOException e) {
             throw new NumberLoggerInitializationException("Error creating a new " + logFile, e);
         }
