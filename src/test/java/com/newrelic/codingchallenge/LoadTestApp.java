@@ -29,8 +29,7 @@ public class LoadTestApp {
     NumberServerApp numberServerApp;
     File tempLoggingFile;
     NumberTracker numberTracker;
-    private NumberBufferedFileLogger numberBufferedFileLogger
-            ;
+    private NumberBufferedFileLogger numberBufferedFileLogger;
 
     @BeforeEach
     public void initServer(@TempDir Path tempDir) {

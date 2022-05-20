@@ -41,15 +41,6 @@ public class NumberFileLogger implements NumberTrackerLogger, Closeable {
         }
     }
 
-    public void flush() throws IOException {
-        try {
-            fileWriter.flush();
-        } catch (IOException e) {
-            logger.warn("A problem occurred flushing to file " + logFile, e);
-            throw e;
-        }
-    }
-
     protected void initFileWriter(String logFile) throws NumberLoggerInitializationException {
         try {
             this.fileWriter = new FileWriter(logFile, false);

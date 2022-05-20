@@ -38,11 +38,14 @@ class NumberServerAppTest {
 
     NumberTracker numberTracker;
 
+    NumberBufferedFileLogger numberBufferedFileLogger;
+
     @BeforeEach
     public void initServer(@TempDir Path tempDir) {
         tempLoggingFile = tempDir.resolve("numbers.log").toFile();
         numberServer = Mockito.spy(new NumberServer(freePort, maxClients));
-        numberTracker = Mockito.spy(new NumberTracker(new NumberBufferedFileLogger(tempLoggingFile)));
+        numberBufferedFileLogger = new NumberBufferedFileLogger(tempLoggingFile);
+        numberTracker = Mockito.spy(new NumberTracker(numberBufferedFileLogger));
         numberServerApp = new NumberServerApp(tempLoggingFile, freePort, checkNumberTrackInSeconds, maxClients, numberServer, numberTracker);
         executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1000);
         executor.execute(numberServerApp::startServer);
@@ -70,23 +73,29 @@ class NumberServerAppTest {
     }
 
     @Test
-    void valid_digits_should_be_logged_into_file() throws IOException {
-        List<CompletableFuture<String>> clientMessages = IntStream.range(1, maxClients).mapToObj(it->CompletableFuture.supplyAsync(() -> {
+    void valid_digits_should_be_logged_into_file() throws Exception {
+        CountDownLatch invalidMessagesSent = new CountDownLatch(maxClients);
+        List<CompletableFuture<String>> clientMessages = IntStream.range(0, maxClients).mapToObj(it->CompletableFuture.supplyAsync(() -> {
             while(!numberServer.isRunning()) TestUtils.sleep(100);
             String randomNumber = String.format("%09d", it);
             sendMessageToSever(freePort, randomNumber, 100);
+            invalidMessagesSent.countDown();
             return randomNumber;
         })).collect(Collectors.toList());
+        invalidMessagesSent.await();
 
         //Send lit of invalid messages
-        IntStream.range(1, maxClients).mapToObj(it->CompletableFuture.supplyAsync(() -> {
+        IntStream.range(0, maxClients).mapToObj(it->CompletableFuture.supplyAsync(() -> {
             while(!numberServer.isRunning()) TestUtils.sleep(100);
             sendMessageToSever(freePort, "INVALID_MESSAGE", 100);
             return "INVALID_MESSAGE";
         })).collect(Collectors.toList());
 
+
+        numberBufferedFileLogger.flush();
         List<String> validMessagesSent = clientMessages.stream().map(it -> it.join().replaceAll("\\n","")).collect(Collectors.toList());
         List<String> validMessagesLogged = FileUtils.readLines(tempLoggingFile, StandardCharsets.UTF_8);
+
         assertThat(validMessagesSent).hasSameElementsAs(validMessagesLogged);
     }
 

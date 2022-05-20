@@ -8,6 +8,6 @@ public class MessageUtils {
     }
 
     public static boolean isValidNumber(String in) {
-        return StringUtils.isNumeric(in) && in.length() == 9;
+        return in.length() == 9 && StringUtils.isNumeric(in) ;
     }
 }
